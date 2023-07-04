@@ -6,7 +6,7 @@ const { CorrelationMiddleware } = require("../../index");
 // Create broker
 let broker = new ServiceBroker({
 	logger: "console",
-	middlewares: [CorrelationMiddleware]
+	middlewares: [CorrelationMiddleware()]
 });
 
 // Load my service

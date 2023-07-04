@@ -6,7 +6,7 @@ const { CorrelationMiddleware } = require("../../src");
 const { greeterService } = require("./greeterService");
 const { formaterService } = require("./formaterService");
 
-const logSpy = jest.fn().mockImplementation(() => false);
+const logSpy = jest.fn();
 let opts = { requestID: "" };
 
 const LogSpyMiddleware = {
@@ -16,7 +16,9 @@ const LogSpyMiddleware = {
 };
 
 describe("Test MyService", () => {
-	const broker = new ServiceBroker({ middlewares: [LogSpyMiddleware, CorrelationMiddleware] });
+	const broker = new ServiceBroker({
+		middlewares: [CorrelationMiddleware({ emptyContextStr: "" }), LogSpyMiddleware]
+	});
 	const service = broker.createService(greeterService(opts));
 	broker.createService(formaterService);
 
@@ -32,18 +34,17 @@ describe("Test MyService", () => {
 		expect(service).toBeDefined();
 	});
 
-	it("should add emptyContextStr if not in Context", async () => {
+	it("should not add emptyContextStr to lgsMsg and bindings if not in Context", async () => {
 		service.logger.info("def");
 		expect(logSpy.mock.calls[0]).toMatchObject([
 			"info",
-			["[No Context] ", "def"],
+			["def"],
 			{
 				nodeID: expect.any(String),
 				ns: "",
 				mod: "greeter",
 				svc: "greeter",
-				ver: undefined,
-				logRelID: "No Context"
+				ver: undefined
 			}
 		]);
 	});
@@ -108,25 +109,5 @@ describe("Test MyService", () => {
 				]
 			]);
 		});
-	});
-
-	it("should use ParentCtx to get logRelID", () => {
-		return broker
-			.call("greeter.greet", {}, { parentCtx: { meta: { logRelID: "abc" } } })
-			.then(res => {
-				expect(res).toBe("Hello Anonymous!");
-				expect(logSpy.mock.calls[0]).toMatchObject([
-					"info",
-					["[abc] ", "Creating a greeting for undefined"],
-					{
-						nodeID: expect.any(String),
-						ns: "",
-						mod: "greeter",
-						svc: "greeter",
-						ver: undefined,
-						logRelID: "abc"
-					}
-				]);
-			});
 	});
 });
